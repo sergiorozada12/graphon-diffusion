@@ -3,8 +3,8 @@ import pytorch_lightning as pl
 from pytorch_lightning import Trainer
 from pytorch_lightning.loggers import WandbLogger
 
-from config import MainConfig
-from src.datasets.community_small import CommunitySmall
+from configs.config_extrapolation_sbm import MainConfig
+from src.datasets.community_small import GraphDatasetModule
 from src.train.trainer import DiffusionGraphModule
 from src.sample.sampler import Sampler
 
@@ -14,7 +14,7 @@ def main():
     logger = WandbLogger(project="graphon-diffusion", config=OmegaConf.to_container(cfg)) if cfg.general.use_wandb else None
     pl.seed_everything(cfg.general.seed)
 
-    datamodule = CommunitySmall(cfg)
+    datamodule = GraphDatasetModule(cfg)
     datamodule.setup()
 
     model = DiffusionGraphModule(cfg)

@@ -1,16 +1,14 @@
 import os
 import pickle
-import torch
 import numpy as np
-from torch.utils.data import TensorDataset, DataLoader
+import torch
+from torch.utils.data import DataLoader
 import pytorch_lightning as pl
-import networkx as nx
-import torch.nn.functional as F
 
 from src.utils import graph_list_to_dataset
 
 
-class CommunitySmall(pl.LightningDataModule):
+class GraphDatasetModule(pl.LightningDataModule):
     def __init__(self, config):
         super().__init__()
         self.config = config
