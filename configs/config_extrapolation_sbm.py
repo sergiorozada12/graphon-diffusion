@@ -5,7 +5,7 @@ class GeneralConfig:
     seed: int = 42
     use_wandb: bool = True
     save_path: str = "results/"
-    device: str = "mps"
+    device: str = "cuda"
 
 @dataclass
 class SamplerConfig:
