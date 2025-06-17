@@ -6,7 +6,7 @@ import wandb
 from pathlib import Path
 from pytorch_lightning.loggers import WandbLogger
 
-from src.utils import adjs_to_graphs, init_flags, quantize
+from src.utils import adjs_to_graphs, quantize
 from src.sde.equations import VPSDE, VESDE, subVPSDE
 from src.sde.solver import get_pc_solver, get_s4_solver
 from src.train.ema import ExponentialMovingAverage
@@ -18,6 +18,7 @@ class Sampler:
         self.cfg = cfg
         self.device = torch.device(cfg.general.device)
         self.logger = logger
+        self.num_nodes = cfg.sampler.num_nodes or cfg.data.max_node_num
 
         ckpt = torch.load(f"checkpoints/{cfg.data.data}/last_version.ckpt", map_location=self.device)
 
@@ -36,15 +37,6 @@ class Sampler:
 
         self.datamodule = datamodule
 
-    def _extract_graphs(self, dataloader):
-        """Collect all adjacency matrices into a list of NetworkX graphs."""
-        all_adjs = []
-        for _, adjs in dataloader:
-            all_adjs.append(adjs)
-        all_adjs = torch.cat(all_adjs, dim=0)
-        graphs = adjs_to_graphs(quantize(all_adjs), is_cuda=self.device.type != "cpu")
-        return graphs
-
     def _get_sde(self, sde_cfg):
         if sde_cfg.type == 'VP':
             return VPSDE(beta_min=sde_cfg.beta_min, beta_max=sde_cfg.beta_max, N=sde_cfg.num_scales)
@@ -56,8 +48,8 @@ class Sampler:
             raise NotImplementedError(f"SDE type {sde_cfg.type} not supported.")
 
     def _get_sampling_fn(self):
-        shape_x = (self.cfg.data.batch_size, self.cfg.data.max_node_num, self.cfg.data.max_feat_num)
-        shape_adj = (self.cfg.data.batch_size, self.cfg.data.max_node_num, self.cfg.data.max_node_num)
+        shape_x = (self.cfg.data.batch_size, self.num_nodes, self.cfg.data.max_feat_num)
+        shape_adj = (self.cfg.data.batch_size, self.num_nodes, self.num_nodes)
 
         get_sampler = get_s4_solver if self.cfg.sampler.solver == 'S4' else get_pc_solver
         return get_sampler(
@@ -75,6 +67,9 @@ class Sampler:
             eps=self.cfg.sampler.eps,
             device=self.device
         )
+
+    def _make_full_flags(self):
+        return torch.ones(self.cfg.data.batch_size, self.num_nodes, dtype=torch.bool, device=self.device)
 
     def plot_sampled_graphs(self, graph_list, num_graphs=20):
         num_graphs = min(num_graphs, len(graph_list))
@@ -110,11 +105,11 @@ class Sampler:
         generated = []
 
         for _ in range(num_rounds):
-            flags = init_flags(self.datamodule.train_graphs, self.cfg).to(self.device)
+            flags = self._make_full_flags()
             adj, _ = self.sampling_fn(self.model, flags)
             samples = quantize(adj)
             graphs = adjs_to_graphs(samples, is_cuda=self.device.type != 'cpu')
             generated.extend(graphs)
-        self.plot_sampled_graphs(generated[:len(self.datamodule.test_graphs)])
 
+        self.plot_sampled_graphs(generated[:len(self.datamodule.test_graphs)])
         return generated[:len(self.datamodule.test_graphs)]

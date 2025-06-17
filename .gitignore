@@ -6,6 +6,8 @@ data/
 checkpoints/
 wandb/
 samples/
+eval/
+test*
 
 # C extensions
 *.so

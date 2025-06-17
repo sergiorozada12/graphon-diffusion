@@ -13,20 +13,20 @@ class SamplerConfig:
     probability_flow: bool = False
     noise_removal: bool = True
     eps: float = 1e-4
-    solver: str = "PC"
+    solver: str = "S4"
     predictor: str = "Euler"    # Options: "Euler", "S4"
     corrector: str = "Langevin"    # Options: "None", "Langevin", etc.
     snr: float = 0.05
     scale_eps: float = 0.7
     n_steps: int = 1
-    num_nodes: int = 20
+    num_nodes: int = 30
 
 @dataclass
 class DataConfig:
     dir: str = "data"
-    data: str = "community_small"
+    data: str = "extrapolation_tree"
     batch_size: int = 128
-    max_node_num: int = 20
+    max_node_num: int = 40
     max_feat_num: int = 1
     init: str = "ones"
     test_split: float = 0.2
@@ -36,7 +36,7 @@ class DataConfig:
 class ModelConfig:
     max_feat_num: int = 1
     nhid: int = 32
-    num_layers: int = 5
+    num_layers: int = 7
     num_linears: int = 2
     c_init: int = 2
     c_hid: int = 8

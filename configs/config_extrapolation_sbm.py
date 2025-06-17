@@ -19,13 +19,14 @@ class SamplerConfig:
     snr: float = 0.05
     scale_eps: float = 0.7
     n_steps: int = 1
+    num_nodes: int = 30
 
 @dataclass
 class DataConfig:
     dir: str = "data"
     data: str = "extrapolation_sbm"
-    batch_size: int = 16
-    max_node_num: int = 200
+    batch_size: int = 128
+    max_node_num: int = 40
     max_feat_num: int = 1
     init: str = "ones"
     test_split: float = 0.2
@@ -34,7 +35,6 @@ class DataConfig:
 @dataclass
 class ModelConfig:
     max_feat_num: int = 1
-    max_node_num: int = 200
     nhid: int = 32
     num_layers: int = 5
     num_linears: int = 2

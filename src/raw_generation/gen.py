@@ -5,11 +5,11 @@ import networkx as nx
 import scipy as sp
 
 
-NUM_GRAPHS = 200
-PLANAR_SIZE_RANGE = (20, 60)
-TREE_SIZE_RANGE = (20, 60)
+NUM_GRAPHS = 100
+PLANAR_SIZE_RANGE = (20, 40)
+TREE_SIZE_RANGE = (20, 40)
 SBM_COMMS_RANGE = (2, 2)
-SBM_COMMS_SIZE = (10, 30)
+SBM_COMMS_SIZE = (10, 20)
 SEED = 0
 BASE_PATH = "data/"
 PATHS = {

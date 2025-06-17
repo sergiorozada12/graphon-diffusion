@@ -122,7 +122,7 @@ class DiffusionGraphModule(pl.LightningModule):
             os.remove(symlink_path)
         os.symlink(os.path.abspath(ckpt_path), symlink_path)
 
-    def _loss(self, adj, t, noise, std, score):
+    def _____loss(self, adj, t, noise, std, score):
         reduce_op = torch.mean if self.reduce_mean else lambda *args, **kwargs: 0.5 * torch.sum(*args, **kwargs)
         if not self.likelihood_weighting:
             losses = torch.square(score * std[:, None, None] + noise)
@@ -135,6 +135,23 @@ class DiffusionGraphModule(pl.LightningModule):
             agg = reduce_op(losses, dim=-1)
             agg *= g2
         return torch.mean(agg)
+    
+    def _loss(self, adj, t, noise, std, score):
+        # Mask: only consider valid node pairs (non-padding)
+        flags = node_flags(adj)  # B × N
+        mask = (flags[:, :, None] * flags[:, None, :]).float()  # B × N × N
+
+        if not self.likelihood_weighting:
+            losses = torch.square(score * std[:, None, None] + noise)
+        else:
+            g2 = self.sde.sde(torch.zeros_like(adj), t)[1] ** 2
+            losses = torch.square(score + noise / std[:, None, None])
+
+        losses = losses * mask  # Apply mask
+        num_valid = mask.sum(dim=(1, 2)).clamp(min=1)  # B
+
+        agg = losses.sum(dim=(1, 2)) / num_valid  # normalize per graph
+        return agg.mean()  # average over batch
 
     def _perturb_data(self, adj, flags, t):
         noise = gen_noise(adj, flags)

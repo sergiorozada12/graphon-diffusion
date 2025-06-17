@@ -7,12 +7,11 @@ from src.utils import mask_adjs
 
 
 class ScoreNetwork(torch.nn.Module):
-    def __init__(self, max_feat_num, max_node_num, nhid, num_layers, num_linears,
+    def __init__(self, max_feat_num, nhid, num_layers, num_linears,
                  c_init, c_hid, c_final, adim, num_heads=4, conv="GCN"):
         super().__init__()
 
         self.nfeat = max_feat_num
-        self.max_node_num = max_node_num
         self.nhid = nhid
         self.num_layers = num_layers
         self.num_linears = num_linears
@@ -44,10 +43,9 @@ class ScoreNetwork(torch.nn.Module):
             activate_func=F.elu
         )
 
-        self.register_buffer("mask", torch.ones([max_node_num, max_node_num]) - torch.eye(max_node_num))
-        self.mask.unsqueeze_(0)
-
     def forward(self, x, adj, flags=None):
+        B, N, _ = adj.size()
+
         adjc = self._pow_tensor(adj, self.c_init)
         adj_list = [adjc]
 
@@ -55,9 +53,12 @@ class ScoreNetwork(torch.nn.Module):
             x, adjc = layer(x, adjc, flags)
             adj_list.append(adjc)
 
-        adjs = torch.cat(adj_list, dim=1).permute(0, 2, 3, 1)
-        score = self.final(adjs).view(*adjs.shape[:-1])
-        score = score * self.mask.to(score.device)
+        adjs = torch.cat(adj_list, dim=1).permute(0, 2, 3, 1)  # [B, N, N, F]
+        score = self.final(adjs).view(B, N, N)
+
+        mask = torch.ones(N, N, device=adj.device) - torch.eye(N, device=adj.device)
+        score = score * mask.unsqueeze(0)
+
         return mask_adjs(score, flags)
 
     def _pow_tensor(self, x, cnum):

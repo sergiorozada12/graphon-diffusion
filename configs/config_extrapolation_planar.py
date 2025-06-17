@@ -19,14 +19,14 @@ class SamplerConfig:
     snr: float = 0.05
     scale_eps: float = 0.7
     n_steps: int = 1
-    num_nodes: int = 20
+    num_nodes: int = 30
 
 @dataclass
 class DataConfig:
     dir: str = "data"
-    data: str = "community_small"
+    data: str = "extrapolation_planar"
     batch_size: int = 128
-    max_node_num: int = 20
+    max_node_num: int = 40
     max_feat_num: int = 1
     init: str = "ones"
     test_split: float = 0.2
