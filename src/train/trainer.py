@@ -63,6 +63,7 @@ class DiffusionGraphModule(pl.LightningModule):
 
         # Noise
         t = torch.rand(adj.shape[0], device=device) * (self.sde.T - self.loss_eps) + self.loss_eps
+        # t = torch.rand(adj.shape[0], device=device).pow(1 / 0.5) * (self.sde.T - self.loss_eps) + self.loss_eps
         perturbed, noise, std = self._perturb_data(adj, flags, t)
         score = self(x, perturbed, flags, t)
 
@@ -99,6 +100,7 @@ class DiffusionGraphModule(pl.LightningModule):
 
         # Noise
         t = torch.rand(adj.shape[0], device=device) * (self.sde.T - self.loss_eps) + self.loss_eps
+        # t = torch.rand(adj.shape[0], device=device).pow(1 / 0.5) * (self.sde.T - self.loss_eps) + self.loss_eps
         perturbed, noise, std = self._perturb_data(adj, flags, t)
         score = self(x, perturbed, flags, t)
 

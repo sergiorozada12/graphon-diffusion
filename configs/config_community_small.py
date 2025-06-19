@@ -9,7 +9,7 @@ class GeneralConfig:
 
 @dataclass
 class SamplerConfig:
-    use_ema: bool = False
+    use_ema: bool = True
     probability_flow: bool = False
     noise_removal: bool = True
     eps: float = 1e-4
@@ -54,14 +54,14 @@ class TrainConfig:
     reduce_mean: bool = False
     lr_schedule: bool = True
     lr_decay: float = 0.999
-    num_epochs: int = 5000
+    num_epochs: int = 7000
     grad_norm: float = 1.0
 
 @dataclass
 class SDEConfig:
     type: str = "VP"
     beta_min: float = 0.1
-    beta_max: float = 1.0
+    beta_max: float = 10.0
     num_scales: int = 1000
 
 @dataclass

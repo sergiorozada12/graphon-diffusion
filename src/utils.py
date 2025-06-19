@@ -67,6 +67,7 @@ def gen_noise(adj, flags):
     Returns:
         Tensor: Symmetric noise tensor.
     """
+    #z = torch.randn_like(adj).triu(0)
     z = torch.randn_like(adj).triu(1)
     z = z + z.transpose(-1, -2)
     return mask_adjs(z, flags)

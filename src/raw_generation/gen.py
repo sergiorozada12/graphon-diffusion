@@ -5,7 +5,7 @@ import networkx as nx
 import scipy as sp
 
 
-NUM_GRAPHS = 100
+NUM_GRAPHS = 500
 PLANAR_SIZE_RANGE = (20, 40)
 TREE_SIZE_RANGE = (20, 40)
 SBM_COMMS_RANGE = (2, 2)
@@ -69,10 +69,13 @@ def generate_sbm_graphs(num_graphs, min_comms, max_comms, min_comm_size, max_com
     graphs = []
     while len(graphs) < num_graphs:
         num_communities = rng.integers(min_comms, max_comms + 1)
-        community_sizes = rng.integers(min_comm_size, max_comm_size + 1, size=num_communities)
+        comm_size = rng.integers(min_comm_size, max_comm_size + 1)
+        community_sizes = [comm_size] * num_communities  # All communities have same size
+
         probs = np.full((num_communities, num_communities), 0.005)
-        np.fill_diagonal(probs, 0.3)
-        G = nx.stochastic_block_model(community_sizes.tolist(), probs, seed=rng)
+        np.fill_diagonal(probs, 0.4)
+
+        G = nx.stochastic_block_model(community_sizes, probs, seed=rng)
         if nx.is_connected(G):
             graphs.append(G)
     return graphs

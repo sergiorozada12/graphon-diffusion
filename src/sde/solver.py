@@ -4,7 +4,7 @@ import abc
 from tqdm import trange
 
 from src.utils import mask_adjs, mask_x, gen_noise
-from src.sde.equations import VPSDE, subVPSDE, VESDE
+from src.sde.equations import VPSDE, subVPSDE, VESDE, JacobiSDE
 
 
 class Predictor(abc.ABC):
@@ -120,6 +120,17 @@ def get_score_fn(sde, model, train=True, continuous=True):
             return score
 
     elif isinstance(sde, VESDE):
+
+        def score_fn(x, adj, flags, t):
+            if continuous:
+                score = model_fn(x, adj, flags)
+                std = sde.marginal_prob(torch.zeros_like(adj), t)[1]
+            else:
+                raise NotImplementedError(f"Discrete not supported")
+            score = -score / std[:, None, None]
+            return score
+    
+    elif isinstance(sde, JacobiSDE):
 
         def score_fn(x, adj, flags, t):
             if continuous:
@@ -249,7 +260,7 @@ def get_s4_solver(
                 if isinstance(sde_adj, VPSDE):
                     alpha = sde_adj.alphas.to(vec_t.device)[timestep]  # VP
                 else:
-                    alpha = torch.ones_like(vec_t)  # VE
+                    alpha = torch.ones_like(vec_t)  # VE Jacobi
                 step_size = (snr * noise_norm / grad_norm) ** 2 * 2 * alpha
                 adj_mean = adj + step_size[:, None, None] * score_adj
                 adj = (

@@ -146,6 +146,9 @@ class VPSDE(SDE):
     def prior_sampling_sym(self, shape):
         x = torch.randn(*shape).triu(1)
         return x + x.transpose(-1, -2)
+    
+    # def prior_sampling_sym(self, shape):
+    #     return torch.randn(*shape).triu(0)
 
     def prior_logp(self, z):
         shape = z.shape
@@ -168,7 +171,7 @@ class VPSDE(SDE):
             0.25 * dt * (2 * self.beta_0 + (2 * t + dt) * (self.beta_1 - self.beta_0))
         )
         mean = torch.exp(-log_mean_coeff[:, None, None]) * x
-        std = torch.sqrt(1.0 - torch.exp(2.0 * log_mean_coeff))
+        std = torch.sqrt(1.0 - torch.exp(-2.0 * log_mean_coeff))
         return mean, std
 
 
@@ -212,8 +215,10 @@ class VESDE(SDE):
 
     def prior_sampling_sym(self, shape):
         x = torch.randn(*shape).triu(1)
-        x = x + x.transpose(-1, -2)
-        return x
+        return x + x.transpose(-1, -2)
+    
+    # def prior_sampling_sym(self, shape):
+    #     return torch.randn(*shape).triu(0)
 
     def prior_logp(self, z):
         shape = z.shape
@@ -286,8 +291,62 @@ class subVPSDE(SDE):
     def prior_sampling_sym(self, shape):
         x = torch.randn(*shape).triu(1)
         return x + x.transpose(-1, -2)
+    
+    # def prior_sampling_sym(self, shape):
+    #     return torch.randn(*shape).triu(0)
 
     def prior_logp(self, z):
         shape = z.shape
         N = np.prod(shape[1:])
         return -N / 2.0 * np.log(2 * np.pi) - torch.sum(z**2, dim=(1, 2, 3)) / 2.0
+
+
+class JacobiSDE(SDE):
+    def __init__(self, N=1000, eps=1e-5):
+        super().__init__(N)
+        self.alpha = 1.0
+        self.beta = 1.0
+        self.eps = eps
+
+    @property
+    def T(self):
+        return 1.0
+
+    def to(self, device):
+        self.device = device
+        return self
+
+    def sde(self, x, t):
+        x = x.clamp(self.eps, 1.0 - self.eps)
+        drift = (1.0 - 2.0 * x)
+        diffusion = torch.sqrt(2.0 * x * (1.0 - x))
+        return drift, diffusion
+
+    def marginal_prob(self, x, t):
+        raise NotImplementedError("No closed-form marginal for Uniform Jacobi SDE.")
+
+    def prior_sampling(self, shape):
+        return torch.rand(*shape, device=getattr(self, "device", None))
+
+    def prior_sampling_sym(self, shape):
+        x = torch.randn(*shape).triu(1)
+        return x + x.transpose(-1, -2)
+    
+    # def prior_sampling_sym(self, shape):
+    #     return torch.randn(*shape).triu(0)
+
+    def prior_logp(self, z):
+        return torch.zeros(z.shape[0], device=z.device)
+
+    def discretize(self, x, t):
+        dt = 1.0 / self.N
+        drift, diffusion = self.sde(x, t)
+        G = diffusion * torch.sqrt(torch.tensor(dt, device=x.device, dtype=x.dtype))
+        f = drift * dt
+        return f, G
+
+    def transition(self, x, t, dt):
+        drift, diffusion = self.sde(x, t)
+        mean = x + drift * dt
+        std = diffusion * np.sqrt(dt)
+        return mean, std
